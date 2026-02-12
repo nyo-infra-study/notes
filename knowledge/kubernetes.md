@@ -114,106 +114,40 @@ A cluster is the foundation of Kubernetes. It consists of at least one **control
 
 > **💡 Note:** All major local tools support multi-node clusters. This is useful for testing scenarios like node failures, pod scheduling across nodes, and affinity/anti-affinity rules.
 
-#### Minikube
+### Setting up a Local Cluster
 
-📖 **Installation:** [https://minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/)
+While tools like **Minikube**, **Kind**, and **K0s** are excellent options, **K3s (via K3d)** is often the preferred choice for its speed, low resource usage, and "batteries-included" approach.
 
-```bash
-# Create a single-node cluster
-minikube start
+#### 🚀 Recommended: K3s (via K3d)
 
-# Create a multi-node cluster (e.g., 3 nodes)
-minikube start --nodes=3
+Since K3s is Linux-native, we use **K3d** to run it as docker containers on macOS.
 
-# Add a node to an existing cluster
-minikube node add
-
-# Check cluster status
-minikube status
-
-# Stop the cluster
-minikube stop
-
-# Delete the cluster
-minikube delete
-```
-
-#### kind (Kubernetes IN Docker)
-
-📖 **Installation:** [https://kind.sigs.k8s.io/docs/user/quick-start/#installation](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+**Prerequisite:** Ensure Docker (via Docker Desktop, OrbStack, or Colima) is running.
 
 ```bash
-# Create a single-node cluster
-kind create cluster
+# 1. Install k3d
+brew install k3d
 
-# Create a named cluster
-kind create cluster --name my-cluster
+# 2. Create a simple single-node cluster
+k3d cluster create my-cluster
 
-# Create a multi-node cluster (requires a config file)
-kind create cluster --config kind-config.yaml
+# 3. Create a multi-node cluster (1 Server + 3 Agents)
+# This simulates a real production environment with multiple workers.
+k3d cluster create my-cluster --agents 3
 
-# Delete a cluster
-kind delete cluster --name my-cluster
+# 4. Create a cluster for Cilium/Nginx labs (Disable default Traefik)
+# We disable the built-in ingress (Traefik) so we can install our own later.
+k3d cluster create my-cluster --k3s-arg "--disable=traefik@server:0"
+
+# 5. Delete cluster
+k3d cluster delete my-cluster
 ```
 
-Multi-node `kind-config.yaml` example:
+#### Other Alternatives
 
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-  - role: worker
-  - role: worker
-```
-
-#### k3s
-
-📖 **Installation:** [https://docs.k3s.io/quick-start](https://docs.k3s.io/quick-start)
-
-```bash
-# Install and start the server (control plane + worker)
-curl -sfL https://get.k3s.io | sh -
-
-# Get the node token (needed to join worker nodes)
-sudo cat /var/lib/rancher/k3s/server/node-token
-
-# Join a worker node to the cluster (run on the worker machine)
-curl -sfL https://get.k3s.io | K3S_URL=https://<server-ip>:6443 K3S_TOKEN=<node-token> sh -
-
-# Check nodes
-sudo k3s kubectl get nodes
-
-# Uninstall k3s (server)
-/usr/local/bin/k3s-uninstall.sh
-```
-
-#### k0s
-
-📖 **Installation:** [https://docs.k0sproject.io/stable/install/](https://docs.k0sproject.io/stable/install/)
-
-```bash
-# Install k0s
-curl --proto '=https' --tlsv1.2 -sSf https://get.k0s.sh | sudo sh
-
-# Start the controller (control plane)
-sudo k0s install controller --single
-sudo k0s start
-
-# Generate a join token for a worker node
-sudo k0s token create --role=worker
-
-# Join a worker node (run on the worker machine)
-sudo k0s install worker --token-file /path/to/token
-sudo k0s start
-
-# Check status
-sudo k0s status
-
-# Stop and reset
-sudo k0s stop
-sudo k0s reset
-```
+- **Minikube**: Good for beginners, uses a VM. (`minikube start`)
+- **Kind**: "Kubernetes in Docker", very similar to K3d but uses standard K8s images. (`kind create cluster`)
+- **K0s**: Zero-friction distribution, useful for bare-metal limits.
 
 ### Cloud Options (Managed Kubernetes)
 
@@ -237,7 +171,7 @@ A **Node** is a worker machine in a Kubernetes cluster. Each node runs:
 
 Nodes can be added to a cluster by:
 
-1. **Locally** — Using tool-specific commands (e.g., `minikube node add`, or adding entries in a `kind` config file).
+1. **Locally** — Ideally by defining them at creation time (e.g., `k3d cluster create --agents 3`).
 2. **Cloud** — Configuring node pools/groups in your managed Kubernetes service.
 
 ---
