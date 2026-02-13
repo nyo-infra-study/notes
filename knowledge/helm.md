@@ -576,3 +576,283 @@ spec:
 >
 > - `helm install` → You run it manually. Helm tracks the release.
 > - ArgoCD `Application` → You commit a YAML file to Git. ArgoCD continuously syncs it. **GitOps.**
+
+---
+
+## Best Practices: Commenting Helm Templates
+
+> ⚠️ **Critical Lesson Learned:** Comments before conditional blocks persist even when conditions are false!
+
+### The Real Problem
+
+When adding header comments **before** Helm conditional blocks, you may encounter errors like:
+
+```
+failed to discover server resources for group version : groupVersion shouldn't be empty
+```
+
+**Root Cause:** Comments placed **before** `{{- if }}` statements are outside the conditional logic and persist in the rendered template regardless of whether the condition evaluates to true or false. When the condition is false and the resource doesn't render, you end up with a YAML file containing only comments, causing Kubernetes parsing to fail.
+
+### How It Breaks - Real Example
+
+**Our actual problematic template:**
+
+```yaml
+# ============================================================
+# Kubernetes Ingress - Backend Server
+# ============================================================
+# This Helm template generates a Kubernetes Ingress...
+# ============================================================
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+...
+{{- end }}
+```
+
+**What happens when `.Values.ingress.enabled = false`:**
+
+The conditional block `{{- if }}...{{- end }}` completely disappears, **but the header comments before it remain** because they're outside the conditional:
+
+```yaml
+# ============================================================
+# Kubernetes Ingress - Backend Server
+# ============================================================
+# This Helm template generates a Kubernetes Ingress...
+# ============================================================
+```
+
+Result: **Empty YAML document with only comments**, no `apiVersion`.
+
+This causes:
+
+- `groupVersion shouldn't be empty` errors
+- Kubernetes API unable to determine resource type
+- ArgoCD sync failures
+
+### ❌Primary Issue: Comments Before Conditional Blocks
+
+```yaml
+# Large header block explaining ingress
+# Multiple lines of documentation
+# These are NOT inside the condition!
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+...
+{{- end }}
+```
+
+**Why it fails:**
+
+- Comments are **before** the `{{- if }}`, not inside it
+- When condition is `false`, resource disappears but comments persist
+- Kubernetes receives a file with comments but no actual resource
+
+### ✅ Recommended: Inline Comments
+
+Keep templates clean with concise inline comments:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Release.Name}}
+  labels:
+    app: {{.Release.Name}}
+spec:
+  replicas: {{.Values.replicaCount}} # Number of pods
+
+  selector:
+    matchLabels:
+      app: {{.Release.Name}} # Must match template labels
+
+  template:
+    metadata:
+      labels:
+        app: {{.Release.Name}}
+    spec:
+      containers:
+        - name: {{.Release.Name}}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{.Values.containerPort}} # App listens here
+```
+
+### Best Practices for Documentation
+
+1. **Put comprehensive docs in `values.yaml` comments**
+   - Explain each configurable value
+   - This is where users look first anyway
+
+2. **Use inline comments in templates for clarity**
+   - Brief explanations next to the code
+   - Keep it on the same line or directly above
+
+3. **Create external documentation**
+   - Use `README.md` in the chart directory
+   - Add chart-level docs in `Chart.yaml` description
+   - Keep detailed explanations in separate markdown files
+
+4. **If you must have header comments**
+   - Keep them minimal (2-3 lines max)
+   - Don't use template syntax as examples in comments
+   - Avoid special formatting characters
+
+### Example: Well-Commented Chart Structure
+
+```
+my-chart/
+├── Chart.yaml              # Chart metadata with description
+├── README.md               # Comprehensive usage guide
+├── values.yaml             # Heavily commented with explanations
+└── templates/
+    ├── deployment.yaml     # Clean with inline comments only
+    ├── service.yaml        # Clean with inline comments only
+    └── ingress.yaml        # Clean with inline comments only
+```
+
+### Safe Comment Guidelines
+
+✅ **Safe - Inline comments:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Release.Name}} # Service name matches release
+spec:
+  type: ClusterIP # Internal only
+```
+
+✅ **Safe - Comments inside conditionals (brief):**
+
+```yaml
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    # Strip /api prefix before forwarding to backend
+    {{- if .Values.ingress.stripPrefixes }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ .Release.Name }}-strip@kubernetescrd
+    {{- end }}
+{{- end }}
+```
+
+✅ **Safe - Brief header (2-3 lines max):**
+
+```yaml
+# Service for backend API
+apiVersion: v1
+kind: Service
+spec:
+  selector:
+    app: {{.Release.Name}} # Routes to matching pods
+```
+
+❌ **Dangerous - Large header in conditional:**
+
+```yaml
+{{- if .Values.ingress.enabled -}}
+# ==================================
+# Multi-line header with formatting
+# Template syntax examples: {{- if }}
+# Special chars and long explanations
+# ==================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+{{- end }}
+```
+
+**Why it's dangerous:** If `ingress.enabled = false`, the block disappears but comments may persist, creating an empty YAML document.
+
+❌ **Dangerous - Comments before conditional resource:**
+
+```yaml
+{{- with .Values.ingress.tls }}
+# TLS configuration for HTTPS
+# This section handles SSL certificates
+tls:
+  {{- range . }}
+  - hosts: ...
+  {{- end }}
+{{- end }}
+```
+
+**Why it's dangerous:** If `tls` is empty array `[]`, the `with` block doesn't render, but comments might persist.
+
+### The Fix: Use `with` for Empty Arrays
+
+The issue often occurs with empty arrays. Change from `if` to `with`:
+
+```yaml
+# ❌ Problematic with empty arrays
+{{- if .Values.ingress.tls }}
+tls:
+  {{- range .Values.ingress.tls }}
+  ...
+  {{- end }}
+{{- end }}
+
+# ✅ Fixed - with only renders if array is non-empty
+{{- with .Values.ingress.tls }}
+tls:
+  {{- range . }}
+  ...
+  {{- end }}
+{{- end }}
+```
+
+**Why this works:**
+
+- `if []` evaluates to `true` (empty array is truthy)
+- `with []` evaluates to `false` (with checks for non-empty)
+- Using `with` prevents rendering empty sections entirely
+
+### Key Takeaways
+
+> **1. Never put large comment blocks inside conditional template blocks (`{{- if }}`, `{{- with }}`). Comments may persist even when conditions are false, creating empty YAML documents that cause parsing errors.**
+
+> **2. Use `{{- with array }}` instead of `{{- if array }}` for arrays - empty arrays are truthy with `if` but falsy with `with`, preventing empty section rendering.**
+
+> **3. Keep Helm templates focused on structure, not extensive documentation. Put comprehensive docs in `values.yaml`, `README.md`, or external documentation files.**
+
+This approach keeps templates clean, avoids parsing issues, and makes documentation easier to maintain and discover.
+
+### Real-World Example: The Bug
+
+Here's what actually caused the `groupVersion shouldn't be empty` error in our setup:
+
+```yaml
+{{- if .Values.ingress.tls }}
+# TLS/SSL Configuration (for HTTPS)
+tls:
+  {{- range .Values.ingress.tls | default list }}
+  - hosts: ...
+  {{- end }}
+{{- end }}
+```
+
+**The problem:**
+
+- `values.yaml` had `tls: []` (empty array)
+- Empty array `[]` is truthy, so the `if` condition passed
+- But `range` had nothing to iterate, rendering only comments
+- Result: YAML document with comments but no `apiVersion`
+
+**The solution:**
+
+```yaml
+{{- with .Values.ingress.tls }}
+tls:
+  {{- range . }}
+  - hosts: ...
+  {{- end }}
+{{- end }}
+```
+
+Now the entire section doesn't render when `tls` is empty, completely avoiding the issue.
