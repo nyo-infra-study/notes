@@ -291,6 +291,110 @@ syncPolicy:
 
 ---
 
+## Automatic Image Updates
+
+**Problem:** After building a new Docker image, how does ArgoCD know to update the deployment?
+
+### Strategy 1: Manual Tag Updates (Not Recommended)
+
+Update image tag in Git after each build:
+
+```yaml
+# apps/dev/web-frontend.yaml
+image:
+  tag: "abc123" # Update this manually after build
+```
+
+❌ Requires manual Git commits  
+❌ Breaks automation
+
+### Strategy 2: Stable Tags + Always Pull (✅ Recommended for Dev)
+
+Use a **stable tag** that gets overwritten:
+
+```yaml
+# apps/dev/web-frontend.yaml
+valuesObject:
+  image:
+    tag: "dev" # Static tag (dev, staging, main, etc.)
+    pullPolicy: Always # Force pull even if tag exists
+```
+
+**How it works:**
+
+1. Build pushes to `skimpjr/web-frontend:dev` (overwrites existing)
+2. ArgoCD checks image digest periodically
+3. Detects digest changed (even though tag is same)
+4. Triggers deployment rollout
+5. Pods restart with `imagePullPolicy: Always` → pulls new image
+
+✅ Fully automatic  
+✅ No Git commits needed  
+✅ Works in local dev  
+⚠️ Not suitable for production (no rollback capability)
+
+### Strategy 3: ArgoCD Image Updater (Production)
+
+For production, use [ArgoCD Image Updater](https://argocd-image-updater.readthedocs.io/):
+
+- Watches Docker registry for new semantic version tags
+- Automatically updates Git with new image versions
+- Supports rollback (Git history)
+- Requires proper tagging strategy (semver)
+
+**Example workflow:**
+
+```
+Build tags image: v1.2.3
+  ↓
+Image Updater detects new tag
+  ↓
+Updates Git: image.tag: "v1.2.3"
+  ↓
+ArgoCD syncs
+  ↓
+Deployment updated
+```
+
+### Our Implementation
+
+**File:** [`apps/dev/web-frontend.yaml`](../../infrastructure/apps/dev/web-frontend.yaml)
+
+```yaml
+valuesObject:
+  image:
+    tag: "dev"
+    pullPolicy: Always
+```
+
+**Build template:** [`argo-workflows/frontend-build-template.yaml`](../../infrastructure/argo-workflows/frontend-build-template.yaml)
+
+```yaml
+args:
+  - "--destination=skimpjr/web-frontend:{{inputs.parameters.environment}}"
+  # Pushes to 'dev' tag, overwrites on each build
+```
+
+**Complete flow:**
+
+```
+git push (web-frontend)
+  ↓
+CronWorkflow detects (every 2 min)
+  ↓
+Updates ConfigMap
+  ↓
+Sensor triggers build
+  ↓
+Kaniko pushes skimpjr/web-frontend:dev
+  ↓
+ArgoCD detects image digest change
+  ↓
+Deployment updates automatically! ✅
+```
+
+---
+
 ## Common CLI Commands
 
 ```bash
