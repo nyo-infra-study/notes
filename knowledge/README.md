@@ -20,6 +20,10 @@ Before diving into individual tools, here is how everything fits together in our
                                                       (New Image)
                                                           ↓
 [Kubernetes] <--(Apply)-- [Helm Charts] <--(Sync)-- [ArgoCD]
+     │
+ (Run Pods)
+     ↓
+ [Promtail] --(Ship Logs)--> [Loki] --(Query)--> [Grafana]
 ```
 
 ## 📖 The Story of Our Stack
@@ -63,3 +67,15 @@ To solve this, we use **Argo Workflows** and **Argo Events**:
 To complete the cycle, we configure our Kubernetes YAML to use a stable tag (like `dev`) with `imagePullPolicy: Always`. When the new image hits the registry, ArgoCD restarts the pods, they pull the new "dev" image, and your frontend is updated with the correct config.
 
 👉 **Read more:** [`argo-workflows.md`](./argo-workflows.md) and [`argo-events.md`](./argo-events.md)
+
+### 5. Seeing what happened: Centralized Logging (PLG)
+
+Once your apps are running, things _will_ break. Relying on `kubectl logs` or ArgoCD UI is not enough because:
+
+1.  **Persistence**: If a pod crashes and restarts, its logs are gone. You lose the error trace.
+2.  **Aggregation**: You can't see "all 500 errors across frontend AND backend" in one view.
+3.  **Search**: You can't filter by "duration > 1s" easily.
+
+We use the **PLG Stack** (Promtail, Loki, Grafana) to solve this. It aggregates logs from all pods into a scalable, searchable storage that persists even when pods die.
+
+👉 **Read more:** [`plg-stack.md`](./plg-stack.md)
