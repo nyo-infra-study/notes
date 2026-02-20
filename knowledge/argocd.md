@@ -97,8 +97,8 @@ helm install argocd argo/argo-cd \
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
 # Access the UI (port-forward)
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-# Then open https://localhost:8080 (user: admin)
+kubectl port-forward svc/argocd-server -n argocd 9000:443
+# Then open https://localhost:9000 (user: admin)
 ```
 
 > **Where does `https://argoproj.github.io/argo-helm` come from?**
@@ -399,7 +399,7 @@ Deployment updates automatically! ✅
 
 ```bash
 # Login to ArgoCD
-argocd login localhost:8080
+argocd login localhost:9000
 
 # List applications
 argocd app list

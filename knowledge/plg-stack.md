@@ -64,7 +64,7 @@ kubectl create secret generic grafana-auth -n monitoring \
 
 Grafana is exposed via Traefik Ingress at:
 
-- **URL**: `http://localhost:8080/grafana`
+- **URL**: `http://localhost:9000/grafana`
 - **Ingress Class**: `traefik`
 
 ### 3. Loki & Promtail Connectivity

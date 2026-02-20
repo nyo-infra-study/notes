@@ -127,7 +127,7 @@ spec:
                 arguments:
                   parameters:
                     - name: vite-api-url
-                      value: "http://localhost:8080/api"
+                      value: "http://localhost:9000/api"
                     - name: image-tag
                       value: "latest" # Overridden by commit SHA below
 

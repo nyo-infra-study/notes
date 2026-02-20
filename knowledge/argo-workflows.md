@@ -35,7 +35,7 @@ spec:
   arguments:
     parameters:
       - name: environment # dev, staging, prod
-      - name: vite-api-url # http://localhost:8080/api
+      - name: vite-api-url # http://localhost:9000/api
       - name: image-tag # Commit SHA
 
   templates:
@@ -153,7 +153,7 @@ spec:
       - name: environment
         value: "dev"
       - name: vite-api-url
-        value: "http://localhost:8080/api"
+        value: "http://localhost:9000/api"
       - name: image-tag
         value: "abc123" # Commit SHA from webhook
 ```
