@@ -79,3 +79,9 @@ Once your apps are running, things _will_ break. Relying on `kubectl logs` or Ar
 We use the **PLG Stack** (Promtail, Loki, Grafana) to solve this. It aggregates logs from all pods into a scalable, searchable storage that persists even when pods die.
 
 👉 **Read more:** [`plg-stack.md`](./plg-stack.md)
+
+## 📚 Additional Resources
+
+- [Text Manipulation](./text-manipulation.md) - Essential Linux commands for processing text, logs, and data
+- [Monitoring Tools](./monitoring/README.md) - System diagnostic and monitoring commands
+- [Networking Tools](./networking/README.md) - Network and file transfer utilities
