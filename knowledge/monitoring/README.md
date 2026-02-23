@@ -22,10 +22,13 @@ Use the PLG stack for:
 
 The PLG stack should be your first stop for most debugging scenarios. See [plg-stack.md](../plg-stack.md) for setup and usage.
 
-### lsof (Secondary/Diagnostic)
+### System Diagnostic Tools (Secondary)
 
-Use lsof when you encounter specific system-level issues that logs don't explain:
+Use these command-line tools when you encounter specific system-level issues that logs don't explain:
 
+#### lsof
+
+Use for file and network connection issues:
 - **Port conflicts**: "Address already in use" errors
 - **File locks**: "Device or resource busy" errors
 - **Network issues**: Identifying which process is using a port
@@ -33,6 +36,17 @@ Use lsof when you encounter specific system-level issues that logs don't explain
 - **Connection debugging**: Checking established TCP connections
 
 See [lsof.md](./lsof.md) for command reference.
+
+#### vmstat
+
+Use for performance and resource issues:
+- **Memory pressure**: High swap usage or memory exhaustion
+- **CPU bottlenecks**: Identifying user vs system CPU time
+- **I/O performance**: Detecting disk bottlenecks and wait times
+- **System load**: Understanding overall resource utilization
+- **Performance degradation**: Monitoring trends over time
+
+See [vmstat.md](./vmstat.md) for command reference.
 
 ## Typical Troubleshooting Flow
 
@@ -45,14 +59,18 @@ See [lsof.md](./lsof.md) for command reference.
    - Use `kubectl get pods` to verify pod status
    - Use `kubectl describe pod` for events and resource issues
 
-3. **For specific system-level problems, use lsof**
+3. **For specific system-level problems, use diagnostic tools**
    - Port conflicts: `lsof -i :PORT`
    - File access issues: `lsof /path/to/file`
    - Network connections: `lsof -i -u username`
+   - Performance issues: `vmstat 1 10`
+   - Memory pressure: `vmstat -s`
+   - CPU/I/O bottlenecks: `vmstat 2`
 
 ## Available Documentation
 
 - [lsof.md](./lsof.md) - Command-line tool for listing open files and network connections
+- [vmstat.md](./vmstat.md) - System performance monitoring for memory, CPU, and I/O
 
 ## Related Documentation
 
