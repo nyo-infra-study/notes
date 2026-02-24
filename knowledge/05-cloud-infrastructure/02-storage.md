@@ -32,4 +32,90 @@ A serverless, set-and-forget elastic file system.
 
 ---
 
+## Terraform Examples
+
+### S3 Bucket
+
+```hcl
+resource "aws_s3_bucket" "assets" {
+  bucket = "my-app-assets"
+}
+
+# Block all public access — must be explicit since AWS doesn't enforce it by default
+resource "aws_s3_bucket_public_access_block" "assets" {
+  bucket                  = aws_s3_bucket.assets.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "assets" {
+  bucket = aws_s3_bucket.assets.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
+  bucket = aws_s3_bucket.assets.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms" # prefer KMS over AES256 for audit trail
+      kms_master_key_id = aws_kms_key.app.arn
+    }
+    bucket_key_enabled = true # reduces KMS API call costs
+  }
+}
+```
+
+### EBS Volume
+
+```hcl
+# Derive AZ from the instance rather than hardcoding it
+resource "aws_ebs_volume" "data" {
+  availability_zone = aws_instance.app_server.availability_zone
+  size              = 20 # GB
+  type              = "gp3"
+  encrypted         = true
+  kms_key_id        = aws_kms_key.app.arn
+
+  tags = { Name = "app-data" }
+}
+
+resource "aws_volume_attachment" "data" {
+  device_name = "/dev/xvdf"
+  volume_id   = aws_ebs_volume.data.id
+  instance_id = aws_instance.app_server.id
+}
+```
+
+### EFS File System
+
+```hcl
+resource "aws_efs_file_system" "shared" {
+  encrypted        = true
+  kms_key_id       = aws_kms_key.app.arn
+  performance_mode = "generalPurpose" # use "maxIO" only for highly parallel workloads
+  throughput_mode  = "bursting"
+
+  # Automatically move files not accessed in 30 days to cheaper IA storage
+  lifecycle_policy {
+    transition_to_ia = "AFTER_30_DAYS"
+  }
+
+  tags = { Name = "shared-fs" }
+}
+
+resource "aws_efs_mount_target" "shared" {
+  for_each = toset(aws_subnet.private[*].id)
+
+  file_system_id  = aws_efs_file_system.shared.id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs.id]
+}
+```
+
+---
+
 ### ➡️ Next: [Database Services](./03-database.md)
