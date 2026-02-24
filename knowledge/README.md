@@ -85,3 +85,4 @@ We use the **PLG Stack** (Promtail, Loki, Grafana) to solve this. It aggregates 
 - [Text Manipulation](./text-manipulation.md) - Essential Linux commands for processing text, logs, and data
 - [Monitoring Tools](./monitoring/README.md) - System diagnostic and monitoring commands
 - [Networking Tools](./networking/README.md) - Network and file transfer utilities
+- [AWS Core Services](./aws-core-services-summary/README.md) - Comprehensive guides on foundational AWS infrastructure
