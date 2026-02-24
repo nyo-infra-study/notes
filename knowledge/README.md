@@ -38,21 +38,21 @@ Your applications need a place to live. In the modern world, they run in **Clust
 - **How do I reach it?** You need a **Service**.
 - **How do I expose it to the world?** You need an **Ingress**.
 
-👉 **Read more:** [`kubernetes.md`](./kubernetes.md)
+👉 **Read more:** [Kubernetes](./02-container-orchestration/01-kubernetes.md)
 
 ### 2. The problem with raw YAML: Helm
 
 Writing `deployment.yaml`, `service.yaml`, and `ingress.yaml` for every single application becomes a massive hassle. It's repetitive and hard to manage.
 **Helm** solves this by letting us use **Templates**. Instead of writing 10 files, we write one "Chart" and just change the values (like image name or port) for each app.
 
-👉 **Read more:** [`helm.md`](./helm.md)
+👉 **Read more:** [Helm](./02-container-orchestration/02-helm.md)
 
 ### 3. Automating the rollout: ArgoCD
 
 Now that we have our apps defined, we want our pushed Docker images to be rolled out to the cluster as soon as they are ready.
 **ArgoCD** sits inside the cluster and actively monitors your Git repository. It ensures that what is running in the cluster **matches exactly** what is defined in Git. If you push a change, ArgoCD pulls it and syncs your cluster automatically.
 
-👉 **Read more:** [`argocd.md`](./argocd.md)
+👉 **Read more:** [ArgoCD](./03-deployment-automation/01-argocd.md)
 
 ### 4. The Frontend Problem: Argo Workflows & Events
 
@@ -66,7 +66,7 @@ To solve this, we use **Argo Workflows** and **Argo Events**:
 
 To complete the cycle, we configure our Kubernetes YAML to use a stable tag (like `dev`) with `imagePullPolicy: Always`. When the new image hits the registry, ArgoCD restarts the pods, they pull the new "dev" image, and your frontend is updated with the correct config.
 
-👉 **Read more:** [`argo-workflows.md`](./argo-workflows.md) and [`argo-events.md`](./argo-events.md)
+👉 **Read more:** [Argo Workflows](./03-deployment-automation/02-argo-workflows.md) and [Argo Events](./03-deployment-automation/03-argo-events.md)
 
 ### 5. Seeing what happened: Centralized Logging (PLG)
 
@@ -78,11 +78,70 @@ Once your apps are running, things _will_ break. Relying on `kubectl logs` or Ar
 
 We use the **PLG Stack** (Promtail, Loki, Grafana) to solve this. It aggregates logs from all pods into a scalable, searchable storage that persists even when pods die.
 
-👉 **Read more:** [`plg-stack.md`](./plg-stack.md)
+👉 **Read more:** [PLG Stack](./04-observability/01-plg-stack.md)
 
-## 📚 Additional Resources
+## 🎓 Learning Path
 
-- [Text Manipulation](./text-manipulation.md) - Essential Linux commands for processing text, logs, and data
-- [Monitoring Tools](./monitoring/README.md) - System diagnostic and monitoring commands
-- [Networking Tools](./networking/README.md) - Network and file transfer utilities
-- [AWS Core Services](./aws-core-services-summary/README.md) - Comprehensive guides on foundational AWS infrastructure
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     START HERE                                   │
+│                                                                  │
+│  📚 01. Foundations (Est. 2-3 hours)                            │
+│      ├─ Text Manipulation                                       │
+│      ├─ System Monitoring                                       │
+│      └─ Networking Basics                                       │
+│                          ↓                                       │
+│  🐳 02. Container Orchestration (Est. 4-6 hours)                │
+│      ├─ Kubernetes ⭐ CORE                                      │
+│      └─ Helm                                                     │
+│                          ↓                                       │
+│  🚀 03. Deployment Automation (Est. 3-5 hours)                  │
+│      ├─ ArgoCD ⭐ CORE                                          │
+│      ├─ Argo Workflows                                          │
+│      └─ Argo Events                                             │
+│                          ↓                                       │
+│  📊 04. Observability (Est. 2-4 hours)                          │
+│      ├─ PLG Stack ⭐ CORE                                       │
+│      └─ Diagnostic Tools                                        │
+│                          ↓                                       │
+│  ☁️  05. Cloud Infrastructure (Est. 6-8 hours) [REFERENCE]     │
+│      ├─ Compute                                                 │
+│      ├─ Storage                                                 │
+│      ├─ Database                                                │
+│      ├─ Networking                                              │
+│      ├─ Security and IAM                                        │
+│      └─ Management and Governance                               │
+└─────────────────────────────────────────────────────────────────┘
+
+⭐ CORE = Essential for day-to-day work
+[REFERENCE] = Deep-dive material, read as needed
+```
+
+## 📚 Content Groups
+
+### [01. Foundations](./01-foundations/README.md)
+Essential command-line skills | ⏱️ 2-3 hours | 🎯 Beginner
+
+### [02. Container Orchestration](./02-container-orchestration/README.md)
+Kubernetes and Helm | ⏱️ 4-6 hours | 🎯 Intermediate
+
+### [03. Deployment Automation](./03-deployment-automation/README.md)
+The Argo ecosystem | ⏱️ 3-5 hours | 🎯 Intermediate
+
+### [04. Observability](./04-observability/README.md)
+Monitoring, logging, and diagnostics | ⏱️ 2-4 hours | 🎯 Intermediate
+
+### [05. Cloud Infrastructure](./05-cloud-infrastructure/README.md)
+AWS services reference | ⏱️ 6-8 hours | 🎯 Advanced
+
+## 🚀 Quick Start
+
+New to the stack? Start here:
+1. Read [Foundations](./01-foundations/README.md) to build baseline skills
+2. Learn [Kubernetes](./02-container-orchestration/01-kubernetes.md) — the platform
+3. Understand [ArgoCD](./03-deployment-automation/01-argocd.md) — the deployment tool
+4. Set up [PLG Stack](./04-observability/01-plg-stack.md) — the logging system
+
+Already familiar with the basics? Jump to specific topics:
+- [Cloud Infrastructure](./05-cloud-infrastructure/README.md) — AWS services reference
+- [Diagnostic Tools](./04-observability/02-diagnostic-tools.md) — Kubernetes debugging guide

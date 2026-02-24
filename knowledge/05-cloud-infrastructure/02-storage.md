@@ -1,6 +1,12 @@
 # Storage Services
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Storage
+
 AWS provides storage options tailored for object, block, and file storage.
+
+## Prerequisites
+
+- [Compute Services](./01-compute.md) — storage is typically attached to or accessed by compute resources
 
 ## Amazon S3 (Simple Storage Service)
 Object storage service offering industry-leading scalability, data availability, security, and performance.
@@ -26,4 +32,4 @@ A serverless, set-and-forget elastic file system.
 
 ---
 
-### ➡️ Next: [Database Services](./04-database.md)
+### ➡️ Next: [Database Services](./03-database.md)

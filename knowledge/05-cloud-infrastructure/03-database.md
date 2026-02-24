@@ -1,6 +1,13 @@
 # Database Services
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Database
+
 AWS offers purpose-built databases for various application needs.
+
+## Prerequisites
+
+- [Compute Services](./01-compute.md) — applications running on EC2/EKS connect to these databases
+- [Networking Services](./04-networking.md) — databases live in VPCs and require proper subnet/security group configuration
 
 ## Amazon RDS (Relational Database Service)
 Managed service for setting up, operating, and scaling a relational database.
@@ -30,4 +37,4 @@ Fully managed, petabyte-scale data warehouse service in the cloud. Optimized for
 
 ---
 
-### ➡️ Next: [Networking Services](./05-networking.md)
+### ➡️ Next: [Networking Services](./04-networking.md)

@@ -1,10 +1,18 @@
 # ArgoCD
 
+[Knowledge Base](../README.md) > [Deployment Automation](./README.md) > ArgoCD
+
 > 📖 Official Docs: [https://argo-cd.readthedocs.io/en/stable/](https://argo-cd.readthedocs.io/en/stable/) · Last updated: 2026-02-12
 
 ArgoCD is a **declarative, GitOps continuous delivery tool** for Kubernetes. It continuously monitors your Git repositories and automatically syncs the desired application state to your cluster.
 
 > **Think of it as:** Git is the source of truth. Push a change → ArgoCD deploys it. That's GitOps.
+
+## Prerequisites
+
+Before diving in, you should understand:
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — pods, deployments, services, and namespaces
+- [Helm](../02-container-orchestration/02-helm.md) — ArgoCD uses Helm as a templating engine for chart-based apps
 
 ## Core Concepts
 
@@ -436,3 +444,11 @@ In our setup, ArgoCD manages deployments via Helm:
 ```
 
 The Helm charts define **what** gets deployed (Deployment, Service, Ingress), and ArgoCD ensures the cluster **always matches** what's in Git. Any drift is automatically detected and corrected.
+
+---
+
+## Next Steps
+
+- [Argo Workflows](./02-argo-workflows.md) — build Docker images inside the cluster as part of your pipeline
+- [Argo Events](./03-argo-events.md) — trigger workflows automatically on git push or other events
+- [PLG Stack](../04-observability/01-plg-stack.md) — monitor your ArgoCD-managed applications

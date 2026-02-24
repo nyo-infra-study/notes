@@ -1,10 +1,18 @@
 # Helm
 
+[Knowledge Base](../README.md) > [Container Orchestration](./README.md) > Helm
+
 > 📖 Official Docs: [https://helm.sh/docs/](https://helm.sh/docs/) · Last updated: 2026-02-12
 
 Helm is the **package manager for Kubernetes**. It simplifies deploying and managing applications on a K8s cluster by bundling Kubernetes manifests into reusable packages called **Charts**.
 
 > **Think of it as:** `brew` for macOS, but for Kubernetes.
+
+## Prerequisites
+
+Before diving in, you should understand:
+- [Kubernetes](./01-kubernetes.md) — pods, services, deployments, and namespaces
+- [Text Manipulation](../01-foundations/01-text-manipulation.md) — reading and editing YAML files
 
 ## Core Concepts
 
@@ -856,3 +864,10 @@ tls:
 ```
 
 Now the entire section doesn't render when `tls` is empty, completely avoiding the issue.
+
+---
+
+## Next Steps
+
+- [ArgoCD](../03-deployment-automation/01-argocd.md) — deploy Helm charts automatically via GitOps
+- [PLG Stack](../04-observability/01-plg-stack.md) — installed via Helm, a good real-world chart example

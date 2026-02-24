@@ -1,6 +1,15 @@
 # Kubernetes
 
+[Knowledge Base](../README.md) > [Container Orchestration](./README.md) > Kubernetes
+
 Kubernetes (K8s) is an open-source **container orchestration platform** that automates the deployment, scaling, and management of containerized applications.
+
+## Prerequisites
+
+Before diving in, you should be comfortable with:
+- [Text Manipulation](../01-foundations/01-text-manipulation.md) — reading and filtering YAML/log output
+- [System Monitoring](../01-foundations/02-system-monitoring.md) — diagnosing resource issues on nodes
+- [Networking Basics](../01-foundations/03-networking-basics.md) — understanding how services communicate
 
 ## Core Concepts
 
@@ -218,3 +227,10 @@ Key features:
 - **Path-based routing** — Route `/api` to one Service and `/web` to another.
 - **Host-based routing** — Route `api.example.com` and `web.example.com` to different Services.
 - **TLS termination** — Handle HTTPS certificates at the Ingress level.
+
+---
+
+## Next Steps
+
+- [Helm](./02-helm.md) — package and template your Kubernetes applications
+- [ArgoCD](../03-deployment-automation/01-argocd.md) — automate deployments with GitOps

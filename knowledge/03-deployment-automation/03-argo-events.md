@@ -1,6 +1,15 @@
 # Argo Events
 
+[Knowledge Base](../README.md) > [Deployment Automation](./README.md) > Argo Events
+
 > Event-driven automation for Kubernetes - trigger workflows on git push, webhooks, etc.
+
+## Prerequisites
+
+Before diving in, you should understand:
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — pods, services, and namespaces
+- [ArgoCD](./01-argocd.md) — Argo Events resources are managed via ArgoCD in our setup
+- [Argo Workflows](./02-argo-workflows.md) — Argo Events triggers Argo Workflows to build images
 
 ## What & Why
 
@@ -456,4 +465,11 @@ kubectl logs -n argo -l sensor-name=frontend-build-trigger --tail=50
 - [Event Sources](https://argoproj.github.io/argo-events/eventsources/setup/github/)
 - [Sensors](https://argoproj.github.io/argo-events/sensors/sensors/)
 - [Our Implementation](../../infrastructure/argo-events/)
-- [Argo Workflows](./argo-workflows.md) for workflow definitions
+- [Argo Workflows](./02-argo-workflows.md) for workflow definitions
+
+---
+
+## Next Steps
+
+- [PLG Stack](../04-observability/01-plg-stack.md) — observe and debug your running workflows and deployments
+- [Diagnostic Tools](../04-observability/02-diagnostic-tools.md) — troubleshoot pods and services when things go wrong

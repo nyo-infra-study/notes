@@ -1,8 +1,20 @@
 # scp Command Reference
 
+[Knowledge Base](../README.md) > [Foundations](./README.md) > Networking Basics
+
 scp (Secure Copy Protocol) is a command-line tool for securely transferring files between hosts over SSH. While rarely needed in cloud-native environments with S3, it's useful for direct server-to-server transfers or legacy system migrations.
 
 Source: [TecMint - SCP Commands Examples](https://www.tecmint.com/scp-commands-examples)
+
+## Prerequisites
+
+- [Text Manipulation](./01-text-manipulation.md) — processing file content and command output
+- [System Monitoring](./02-system-monitoring.md) — diagnosing connectivity and process issues
+
+## Next Steps
+
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — the platform where your applications run
+- [Cloud Infrastructure](../05-cloud-infrastructure/02-storage.md) — S3 is the preferred alternative to SCP in cloud environments
 
 ## When to Use SCP vs S3
 

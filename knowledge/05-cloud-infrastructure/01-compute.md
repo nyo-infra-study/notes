@@ -1,6 +1,13 @@
 # Compute Services
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Compute
+
 Compute services provide the processing power required to run applications.
+
+## Prerequisites
+
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — EKS is the managed Kubernetes service covered here
+- [Deployment Automation](../03-deployment-automation/01-argocd.md) — understand what runs on top of this infrastructure
 
 ## Amazon EC2 (Elastic Compute Cloud)
 
@@ -29,4 +36,4 @@ Provides resizable compute capacity (Virtual Machines) in the cloud.
 
 ---
 
-### ➡️ Next: [Storage Services](./03-storage.md)
+### ➡️ Next: [Storage Services](./02-storage.md)

@@ -1,6 +1,13 @@
 # Management and Governance
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Management and Governance
+
 Tools to monitor, manage, and optimize your environment.
+
+## Prerequisites
+
+- [Compute Services](./01-compute.md) — CloudWatch monitors EC2, Lambda, and EKS metrics
+- [Observability](../04-observability/01-plg-stack.md) — CloudWatch complements the PLG stack for AWS-native monitoring
 
 ## Amazon CloudWatch
 Monitoring and observability service built for DevOps, developers, and IT managers.
@@ -23,4 +30,4 @@ Lets you visualize, understand, and manage your AWS costs and usage over time. H
 
 ---
 
-### ➡️ Next: [Back to Introduction](./README.md)
+### ➡️ Next: [Back to Cloud Infrastructure](./README.md)

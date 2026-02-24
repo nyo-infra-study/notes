@@ -1,6 +1,13 @@
 # Security and Identity
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Security and IAM
+
 AWS operates on a Shared Responsibility Model: AWS is responsible for security *OF* the cloud (infrastructure, hardware), and the customer is responsible for security *IN* the cloud (data, OS, firewall config).
+
+## Prerequisites
+
+- [Networking Services](./04-networking.md) — security groups and NACLs are part of VPC networking
+- [Compute Services](./01-compute.md) — IAM roles are commonly attached to EC2 instances and EKS service accounts
 
 ## AWS IAM (Identity and Access Management)
 Securely manage access to AWS services and resources.
@@ -20,4 +27,4 @@ Managed service to easily create and control the encryption keys used to encrypt
 
 ---
 
-### ➡️ Next: [Management and Governance](./07-management-governance.md)
+### ➡️ Next: [Management and Governance](./06-management-governance.md)

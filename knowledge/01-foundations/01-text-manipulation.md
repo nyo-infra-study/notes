@@ -1,8 +1,19 @@
 # Linux Text Processing Commands
 
+[Knowledge Base](../README.md) > [Foundations](./README.md) > Text Manipulation
+
 Text processing commands are essential for manipulating log files, configuration files, and data streams in Linux. These tools are particularly useful for debugging, CI/CD pipelines, and handling large amounts of data.
 
 Source: [Earthly - Linux Text Processing Commands](https://earthly.dev/blog/linux-text-processing-commands)
+
+## Prerequisites
+
+No prior knowledge required — this is the starting point for the knowledge base.
+
+## Next Steps
+
+- [System Monitoring](./02-system-monitoring.md) — diagnose performance and resource issues on Linux systems
+- [Networking Basics](./03-networking-basics.md) — transfer files and debug connectivity
 
 ## Core Concepts
 

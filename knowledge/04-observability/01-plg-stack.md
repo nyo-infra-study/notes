@@ -1,6 +1,15 @@
 # PLG Stack (Promtail, Loki, Grafana)
 
+[Knowledge Base](../README.md) > [Observability](./README.md) > PLG Stack
+
 This document outlines the setup and configuration of the PLG stack for log aggregation and monitoring in the `dev` environment.
+
+## Prerequisites
+
+Before diving in, you should understand:
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — the PLG stack runs as pods in your cluster
+- [Helm](../02-container-orchestration/02-helm.md) — the stack is deployed via the `loki-stack` Helm chart
+- [ArgoCD](../03-deployment-automation/01-argocd.md) — ArgoCD manages the PLG stack deployment in our setup
 
 ## Components
 
@@ -113,3 +122,10 @@ ignoreDifferences:
     jsonPointers:
       - /spec/volumeClaimTemplates
 ```
+
+---
+
+## Next Steps
+
+- [Diagnostic Tools](./02-diagnostic-tools.md) — complement Loki with real-time kubectl debugging and system-level diagnostics
+- [Cloud Infrastructure](../05-cloud-infrastructure/README.md) — understand the AWS services that underpin your cluster

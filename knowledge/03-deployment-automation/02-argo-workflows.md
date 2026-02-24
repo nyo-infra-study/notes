@@ -1,6 +1,14 @@
 # Argo Workflows
 
+[Knowledge Base](../README.md) > [Deployment Automation](./README.md) > Argo Workflows
+
 > Kubernetes-native CI/CD for building Docker images inside the cluster
+
+## Prerequisites
+
+Before diving in, you should understand:
+- [Kubernetes](../02-container-orchestration/01-kubernetes.md) — pods, namespaces, and RBAC
+- [ArgoCD](./01-argocd.md) — Argo Workflows integrates with ArgoCD for GitOps-managed workflow templates
 
 ## What & Why
 
@@ -158,7 +166,7 @@ spec:
         value: "abc123" # Commit SHA from webhook
 ```
 
-See: [Argo Events](./argo-events.md) for automation details.
+See: [Argo Events](./03-argo-events.md) for automation details.
 
 ---
 
@@ -343,7 +351,12 @@ kubectl logs -n argo -l workflows.argoproj.io/workflow=frontend-build-xxx
 ✅ **Parameters** - Environment-specific builds  
 ✅ **GitOps** - Commit → ArgoCD syncs → Ready to use
 
-**Next:** [Argo Events](./argo-events.md) for automated triggering
+**Next:** [Argo Events](./03-argo-events.md) for automated triggering
+
+## Next Steps
+
+- [Argo Events](./03-argo-events.md) — automate workflow triggering on git push and other events
+- [PLG Stack](../04-observability/01-plg-stack.md) — observe your running workflows and deployments
 
 ## References
 

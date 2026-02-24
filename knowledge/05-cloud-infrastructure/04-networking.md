@@ -1,6 +1,12 @@
 # Networking Services
 
+[Knowledge Base](../README.md) > [Cloud Infrastructure](./README.md) > Networking
+
 Networking allows you to isolate infrastructure, scale efficiently, and route traffic.
+
+## Prerequisites
+
+- [Compute Services](./01-compute.md) — EC2 instances and EKS clusters live inside VPCs
 
 ## Amazon VPC (Virtual Private Cloud)
 A logically isolated section of the AWS Cloud where you can launch AWS resources in a virtual network that you define.
@@ -25,4 +31,4 @@ Automatically distributes incoming application traffic across multiple targets.
 
 ---
 
-### ➡️ Next: [Security and IAM](./06-security-and-iam.md)
+### ➡️ Next: [Security and IAM](./05-security-and-iam.md)
