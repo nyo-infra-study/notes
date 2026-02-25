@@ -30,31 +30,67 @@ The fix is a clear **layer separation**.
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 1 — AWS Infrastructure (Terraform owns this)         │
 │                                                             │
-│  VPC, Subnets, EKS Cluster, IAM Roles, IRSA, ECR,          │
-│  RDS, ElastiCache, S3, KMS, ACM certs, Route53             │
+│  VPC, Subnets, IGW, NAT, Route Tables                       │
+│  EKS Cluster, Node Groups, Launch Templates                 │
+│  IAM Roles, IRSA bindings, IAM Policies                     │
+│  KMS Keys                                                   │
+│  RDS, ElastiCache, S3, ECR                                  │
+│  ACM certs, Route53                                         │
+│  Secrets Manager containers  ← shell only, no values        │
+│  IAM policies granting ESO/app access to those secrets      │
 └─────────────────────────────────────────────────────────────┘
                           │
-                          │ outputs (cluster endpoint, role ARNs, etc.)
+                          │ outputs (cluster endpoint, role ARNs,
+                          │         secret ARNs, db endpoints)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1b — Secret Values (You / CI owns this)              │
+│                                                             │
+│  Actual credentials written to Secrets Manager              │
+│  via AWS CLI or CI pipeline — never in .tf files            │
+│  or Git                                                     │
+└─────────────────────────────────────────────────────────────┘
+                          │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Layer 2 — Cluster Bootstrap (Terraform owns this too)      │
 │                                                             │
-│  ArgoCD install, Karpenter install, aws-load-balancer-      │
-│  controller, external-dns, cert-manager                     │
-│  (Helm releases via Terraform's helm_release resource)      │
+│  ArgoCD install          (helm_release)                     │
+│  Karpenter install       (helm_release + kubectl_manifest)  │
+│  aws-load-balancer-ctrl  (helm_release)                     │
+│  external-dns            (helm_release)                     │
+│  cert-manager            (helm_release)                     │
+│  External Secrets Op.    (helm_release)                     │
 └─────────────────────────────────────────────────────────────┘
                           │
                           │ ArgoCD takes over from here
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 3 — Applications (ArgoCD owns this)                  │
+│  Layer 3 — GitOps Config (ArgoCD owns this)                 │
 │                                                             │
-│  backend-server, web-frontend, backend-db,                  │
-│  any app-level config, HPA, PodDisruptionBudgets            │
+│  ExternalSecret CRDs     ← tells ESO what to sync          │
+│  ClusterSecretStore CRD  ← tells ESO where to pull from    │
+│  Namespaces                                                 │
+│  backend-server, web-frontend, backend-db (Helm charts)     │
+│  HPA, PodDisruptionBudgets, NetworkPolicies                 │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ ESO reads Secrets Manager,
+                          │ creates Kubernetes Secrets
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 4 — Runtime (ESO + Kubernetes owns this)             │
+│                                                             │
+│  Kubernetes Secret objects  ← auto-created by ESO           │
+│  Pods read secrets via envFrom — never touch AWS directly   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Rule of thumb:** If it's an AWS resource or a cluster-wide platform tool, Terraform. If it's an application workload, ArgoCD.
+**Rule of thumb:**
+- AWS resource or cluster-wide platform tool → Terraform
+- Secret value → you or CI via AWS CLI, never Terraform
+- ESO/ArgoCD manifests, app workloads → ArgoCD (Git)
+- Resulting Kubernetes Secrets → ESO (auto-managed)
 
 ---
 
@@ -92,70 +128,237 @@ charts/                  ← your Helm charts
 
 ---
 
-## Passing Terraform Outputs into ArgoCD Apps
+## AWS Owns This: Secrets Management
 
-This is the key integration point. Terraform provisions AWS resources and produces outputs (IAM role ARNs, RDS endpoints, S3 bucket names). Your ArgoCD apps need those values.
+This is one of the most important ownership boundaries to get right. The rule:
 
-### Pattern 1: Terraform writes to a Kubernetes Secret (recommended)
+```
+Terraform  →  creates the secret container + grants access (IAM)
+You/CI     →  puts the actual value in
+ESO        →  syncs it into the cluster as a Kubernetes Secret
+ArgoCD app →  reads it via envFrom — never sees the raw value
+```
 
-Terraform creates the secret directly after provisioning:
+Terraform should never hold the actual secret value. If it did, the value would be stored in plaintext in your Terraform state file — which is a serious security problem.
+
+---
+
+### Step 1 — Terraform Creates the Container and Declares the Variables
+
+Terraform creates the secret resource in AWS Secrets Manager (just the shell, no value yet) and the IAM policy that allows the app to read it:
 
 ```hcl
-resource "kubernetes_secret" "app_config" {
-  metadata {
-    name      = "app-config"
-    namespace = "backend"
-  }
+# Create the secret container — no value set here
+resource "aws_secretsmanager_secret" "db" {
+  name                    = "${var.environment}/app/db"
+  description             = "Database credentials for the app"
+  kms_key_id              = aws_kms_key.app.arn
+  recovery_window_in_days = 7
+}
 
-  data = {
-    db_host        = aws_db_instance.postgres.address
-    db_port        = aws_db_instance.postgres.port
-    s3_bucket      = aws_s3_bucket.assets.id
-    irsa_role_arn  = aws_iam_role.app.arn
+# Declare the expected keys — documents what the secret should contain
+# but does NOT set the values
+resource "aws_secretsmanager_secret_version" "db_placeholder" {
+  secret_id = aws_secretsmanager_secret.db.id
+  secret_string = jsonencode({
+    username = "REPLACE_ME"
+    password = "REPLACE_ME"
+    host     = aws_db_instance.postgres.address
+    port     = aws_db_instance.postgres.port
+    dbname   = aws_db_instance.postgres.db_name
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string] # Terraform sets this once, then hands off
   }
+}
+
+# IAM policy — allows the app's IRSA role to read this secret
+resource "aws_iam_policy" "read_db_secret" {
+  name = "${var.environment}-read-db-secret"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+      Resource = aws_secretsmanager_secret.db.arn
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "app_read_db_secret" {
+  role       = aws_iam_role.app.name
+  policy_arn = aws_iam_policy.read_db_secret.arn
 }
 ```
 
-Your app then reads from the secret via `envFrom` — no hardcoded values anywhere.
+The `ignore_changes` on `secret_string` is critical — it tells Terraform "you created this, but don't touch the value again". After the first apply, the real value is written by a human or CI, and Terraform won't overwrite it on the next plan.
 
-### Pattern 2: Terraform writes outputs → CI injects into ArgoCD `valuesObject`
+---
 
-Useful when you want values in Helm values rather than env vars:
+### Step 2 — You (or CI) Put the Real Value In
+
+After `terraform apply`, update the secret value manually or via CI — never in the `.tf` file:
 
 ```bash
-# In your CI pipeline after terraform apply
-DB_HOST=$(terraform output -raw db_host)
+# Manually via AWS CLI
+aws secretsmanager put-secret-value \
+  --secret-id "dev/app/db" \
+  --secret-string '{"username":"appuser","password":"s3cr3t","host":"mydb.xxxx.rds.amazonaws.com","port":"5432","dbname":"appdb"}'
 
-# Patch the ArgoCD Application
-argocd app set backend-server \
-  -p "config.dbHost=${DB_HOST}"
+# Or via CI pipeline (GitHub Actions example)
+- name: Update DB secret
+  run: |
+    aws secretsmanager put-secret-value \
+      --secret-id "${{ env.ENVIRONMENT }}/app/db" \
+      --secret-string "${{ secrets.DB_CREDENTIALS }}"
 ```
 
-### Pattern 3: External Secrets Operator (best for secrets)
+The value lives in AWS Secrets Manager, encrypted with your KMS key. It never touches your Git repo or Terraform state.
 
-Don't put secrets in Terraform state or Kubernetes Secrets directly. Use ESO to pull from AWS Secrets Manager:
+---
+
+### Step 3 — ESO Syncs It into the Cluster
+
+External Secrets Operator watches AWS Secrets Manager and creates a Kubernetes Secret automatically. ArgoCD manages the `ExternalSecret` CRD — it's just another manifest in your `apps/` directory:
 
 ```yaml
-# ArgoCD manages this ExternalSecret
+# apps/dev/external-secrets.yaml  (ArgoCD manages this)
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: aws-secrets-manager
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: external-secrets-sa
+            namespace: external-secrets
+---
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: app-secrets
+  name: db-credentials
+  namespace: backend
 spec:
   refreshInterval: 1h
   secretStoreRef:
     name: aws-secrets-manager
     kind: ClusterSecretStore
   target:
-    name: app-secrets
+    name: db-credentials        # name of the Kubernetes Secret it creates
+    creationPolicy: Owner
   data:
-    - secretKey: db_password
+    - secretKey: username
       remoteRef:
-        key: prod/app/db          # AWS Secrets Manager path
+        key: dev/app/db
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: dev/app/db
         property: password
+    - secretKey: host
+      remoteRef:
+        key: dev/app/db
+        property: host
 ```
 
-Terraform creates the secret in AWS Secrets Manager, ESO syncs it into the cluster. Clean separation.
+ESO creates a real `Secret` named `db-credentials` in the `backend` namespace. It refreshes every hour — if you rotate the value in Secrets Manager, the Kubernetes Secret updates automatically within the refresh window.
+
+---
+
+### Step 4 — The App Reads It via envFrom
+
+Your Helm chart or deployment manifest reads the secret as environment variables. The app never calls Secrets Manager directly — it just sees normal env vars:
+
+```yaml
+# In your Helm chart values / deployment template
+containers:
+  - name: backend
+    image: myapp:latest
+    envFrom:
+      - secretRef:
+          name: db-credentials   # the Secret ESO created
+```
+
+Inside the container:
+```bash
+echo $username   # appuser
+echo $password   # s3cr3t
+echo $host       # mydb.xxxx.rds.amazonaws.com
+```
+
+---
+
+### Updating a Secret Value
+
+When you need to rotate or update a secret:
+
+```
+1. Update the value in AWS Secrets Manager (CLI, console, or CI)
+        ↓
+2. ESO detects the change on next refresh (up to 1h, or force with annotation)
+        ↓
+3. Kubernetes Secret is updated automatically
+        ↓
+4. Pod needs to restart to pick up the new env var value
+        ↓
+5. Trigger a rollout: kubectl rollout restart deployment/backend -n backend
+```
+
+To force an immediate ESO refresh without waiting:
+
+```bash
+kubectl annotate externalsecret db-credentials \
+  force-sync=$(date +%s) \
+  --overwrite \
+  -n backend
+```
+
+---
+
+### Summary: Who Owns What
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Terraform owns                                              │
+│                                                              │
+│  aws_secretsmanager_secret  (the container)                  │
+│  aws_iam_policy             (who can read it)                │
+│  aws_kms_key                (encryption key)                 │
+│  ignore_changes on value    (hands off after first apply)    │
+└──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌──────────────────────────────────────────────────────────────┐
+│  You / CI owns                                               │
+│                                                              │
+│  The actual secret value (via AWS CLI or CI pipeline)        │
+│  Secret rotation schedule                                    │
+└──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌──────────────────────────────────────────────────────────────┐
+│  ArgoCD owns                                                 │
+│                                                              │
+│  ExternalSecret CRD manifest (in apps/ Git directory)        │
+│  ClusterSecretStore manifest                                 │
+└──────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌──────────────────────────────────────────────────────────────┐
+│  ESO owns                                                    │
+│                                                              │
+│  The actual Kubernetes Secret object (auto-created/updated)  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+
 
 ---
 
