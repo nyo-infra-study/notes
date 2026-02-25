@@ -9,27 +9,18 @@ AWS operates on a Shared Responsibility Model: AWS is responsible for security *
 - [Networking Services](./04-networking.md) — security groups and NACLs are part of VPC networking
 - [Compute Services](./01-compute.md) — IAM roles are commonly attached to EC2 instances and EKS service accounts
 
-## AWS IAM (Identity and Access Management)
-Securely manage access to AWS services and resources.
-*   **Users**: Individuals or applications needing access.
-*   **Groups**: Collections of users.
-*   **Roles**: Assumable identities with specific permissions (often used by EC2 instances to access S3 seamlessly without hardcoding credentials).
-*   **Policies**: JSON documents attached to identities defining exactly what they can or cannot do (Allow/Deny, Actions, Resources).
-
-## AWS KMS (Key Management Service)
-Managed service to easily create and control the encryption keys used to encrypt your data.
-*   Integrated with most AWS services (S3, EBS, RDS).
-
-## AWS Shield and AWS WAF
-*   **AWS Shield**: Managed Distributed Denial of Service (DDoS) protection service. Shield Standard is enabled automatically for all AWS customers at no extra cost.
-*   **AWS WAF (Web Application Firewall)**: Helps protect web apps from common web exploits (e.g., SQL injection, Cross-Site Scripting) by defining customizable web security rules.
-
-
 ---
 
-## Terraform Examples
+## AWS IAM (Identity and Access Management)
 
-### IAM Role with Policy
+Securely manage access to AWS services and resources.
+
+- **Users** — individuals or applications needing access.
+- **Groups** — collections of users. Attach policies to the group, not individual users.
+- **Roles** — assumable identities with specific permissions. Used by EC2 instances, Lambda functions, EKS pods — anything that needs to call AWS APIs without hardcoding credentials.
+- **Policies** — JSON documents defining exactly what is allowed or denied (Actions, Resources, Conditions).
+
+The principle of least privilege applies here: every role and policy should grant only the minimum permissions needed, scoped to the exact resources it needs to touch.
 
 ```hcl
 resource "aws_iam_role" "app" {
@@ -72,31 +63,37 @@ resource "aws_iam_role_policy_attachment" "app_s3" {
   policy_arn = aws_iam_policy.s3_read.arn
 }
 
-# Attach the instance profile so EC2 can assume the role
 resource "aws_iam_instance_profile" "app" {
   name = "app-instance-profile"
   role = aws_iam_role.app.name
 }
 ```
 
-### KMS Key
+---
+
+## AWS KMS (Key Management Service)
+
+Managed service to create and control encryption keys used to encrypt your data. Integrated with most AWS services — S3, EBS, RDS, Secrets Manager, CloudWatch Logs.
+
+- Keys never leave KMS unencrypted — your app never handles the raw key material
+- Every encrypt/decrypt call is logged in CloudTrail — full audit trail of who accessed what data and when
+- `enable_key_rotation = true` rotates the key material annually without changing the key ID or re-encrypting your data
 
 ```hcl
 resource "aws_kms_key" "app" {
   description             = "App encryption key"
   deletion_window_in_days = 30
-  enable_key_rotation     = true # rotate annually — required for compliance
+  enable_key_rotation     = true
 
-  # Explicit key policy — never rely solely on the default policy
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "Enable IAM policies"
-        Effect = "Allow"
+        Sid       = "Enable IAM policies"
+        Effect    = "Allow"
         Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
-        Action   = "kms:*"
-        Resource = "*"
+        Action    = "kms:*"
+        Resource  = "*"
       }
     ]
   })
@@ -110,7 +107,14 @@ resource "aws_kms_alias" "app" {
 }
 ```
 
-### WAF Web ACL
+---
+
+## AWS Shield and AWS WAF
+
+- **AWS Shield** — managed DDoS protection. Shield Standard is on automatically for all AWS accounts at no cost. Shield Advanced adds 24/7 response team and cost protection for large-scale attacks.
+- **AWS WAF (Web Application Firewall)** — protects web apps from common exploits like SQL injection and Cross-Site Scripting by defining rules that inspect HTTP requests before they reach your ALB or API Gateway.
+
+WAF sits in front of your ALB. Requests that match a rule are blocked before they ever hit your application.
 
 ```hcl
 resource "aws_wafv2_web_acl" "app" {
@@ -146,6 +150,11 @@ resource "aws_wafv2_web_acl" "app" {
     metric_name                = "AppWAF"
     sampled_requests_enabled   = true
   }
+}
+
+resource "aws_wafv2_web_acl_association" "app" {
+  resource_arn = aws_lb.app.arn
+  web_acl_arn  = aws_wafv2_web_acl.app.arn
 }
 ```
 
