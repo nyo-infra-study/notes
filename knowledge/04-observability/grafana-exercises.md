@@ -49,3 +49,25 @@ From the Explore tab, you pick your "Data Source" via the dropdown at the top-le
    * `container_cpu_usage_seconds_total`: See container-level CPU consumption.
    * `go_memstats_alloc_bytes{job="backend-server"}`: Track Go memory consumption (if scraped).
 *(Note: To populate Mimir with rich application metrics, deploy an OpenTelemetry Collector or Prometheus Agent to scrape your pods and "remote-write" the metrics here).*
+
+---
+
+## 5. Building Dashboards
+**Purpose:** Creating permanent, visual dashboards out of the queries you constructed in the Explore tab.
+
+While the *Explore* tab is for ad-hoc debugging, **Dashboards** are exactly what you put on a TV screen in your engineering bay.
+
+### Step-by-Step Dashboard Creation:
+1. On the left sidebar menu, click the **Plus (+)** icon and select **New Dashboard**.
+2. Click **Add visualization**.
+3. **Select your Data Source** (e.g., Loki for log metrics, Mimir for numerical metrics).
+4. **Write your Query**:
+   * *Example (Loki)*: To create a graph of error rates over time, select Loki and type: 
+     `sum(rate({app="backend-server"} |= "error" [5m]))`
+   * *Example (Mimir)*: To chart CPU usage, select Mimir and type: 
+     `rate(container_cpu_usage_seconds_total{app="backend-server"}[1m])`
+5. **Customize the Panel**: On the right-hand panel, you can change the visualization (Time series, Bar chart, Stat box, Gauge), rename the axis, and give the panel a Title.
+6. Click **Apply** in the top-right corner.
+7. Click the **Save** icon at the top of the dashboard, give it a name like "Backend Golden Signals", and you're done!
+
+**Pro Tip:** You do not have to build dashboards from scratch! You can go to [Grafana's Community Dashboards](https://grafana.com/grafana/dashboards/) to find thousands of pre-built JSON dashboards (like kubernetes cluster monitoring or Go application monitoring) and import them directly into your UI by clicking `+ -> Import` and pasting the dashboard ID.
